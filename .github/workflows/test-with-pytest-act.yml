@@ -1,0 +1,43 @@
+name: Test with Pytest and ACT
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-with-act:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install ACT CLI
+      run: |
+        curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+        echo "$PWD/bin" >> $GITHUB_PATH
+        export PATH="$PWD/bin:$PATH"
+        act --version
+    
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Run pytest with ACT integration tests
+      run: |
+        python -m pytest tests/ -v --tb=short
+      env:
+        # Pre-select medium image size for ACT to avoid interactive prompt
+        ACT_RUNNER_IMAGE: catthehacker/ubuntu:act-latest
